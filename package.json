@@ -1,0 +1,18 @@
+{
+  "dependencies": {
+    "axios": "^1.5.0",
+    "cli-progress": "^3.12.0",
+    "node-cache": "^5.1.2",
+    "node-schedule": "^2.1.1",
+    "technicalindicators": "^3.1.0"
+  },
+  "scripts": {
+    "app:mock": "TZ=Asia/Taipei NODE_ENV=mock NODE_SCRIPT=app node app",
+    "app:real": "TZ=Asia/Taipei NODE_ENV=real NODE_SCRIPT=app node app",
+    "test:mock": "TZ=Asia/Taipei NODE_ENV=mock NODE_SCRIPT=test node test",
+    "test:real": "TZ=Asia/Taipei NODE_ENV=real NODE_SCRIPT=test node test",
+    "backtest:mock": "TZ=Asia/Taipei NODE_ENV=mock NODE_SCRIPT=backtest node backtest",
+    "backtest:real": "TZ=Asia/Taipei NODE_ENV=real NODE_SCRIPT=backtest node backtest"
+  },
+  "type": "module"
+}
