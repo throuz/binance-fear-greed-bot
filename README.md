@@ -1,11 +1,11 @@
-# Binance Funding Rate Bot
+# Binance Fear Greed Bot
 
-A trading bot for Binance that uses funding rate data to make trading decisions. This bot analyzes funding rates to determine optimal times to go long and automatically backtests a range of predefined parameters to find the best trading strategies.
+A trading bot for Binance that uses fear and greed index data to make trading decisions. This bot analyzes fear and greed index history to determine optimal times to go long and automatically backtests a range of predefined parameters to find the best trading strategies.
 
 ## Features
 
-- Monitors funding rates for specified trading pairs.
-- Executes long trades based on funding rate thresholds.
+- Monitors fear and greed index history for specified trading pairs.
+- Executes long trades based on fear and greed index thresholds.
 - Automatically backtests a range of parameters to determine optimal trading settings.
 - Configurable trading strategies and risk management.
 - Real-time logging of trading activities.
@@ -55,8 +55,8 @@ A trading bot for Binance that uses funding rate data to make trading decisions.
    export const ORDER_AMOUNT_PERCENT = 100; // 100%
    export const KLINE_INTERVAL = "1h";
    export const KLINE_LIMIT = 1500;
-   export const FUNDING_RATE_LONG_LEVEL = 69;
-   export const FUNDING_RATE_SHORT_LEVEL = 46;
+   export const FEAR_AND_GREED_LONG_LEVEL = 10;
+   export const FEAR_AND_GREED_SHORT_LEVEL = 91;
    export const LEVERAGE = 1;
 
    // Backtest parameters
@@ -82,7 +82,7 @@ A trading bot for Binance that uses funding rate data to make trading decisions.
 
 ## Backtesting
 
-The bot performs automated backtesting of parameter combinations to optimize trading performance. It evaluates the historical profitability of each strategy based on the funding rate and market conditions.
+The bot performs automated backtesting of parameter combinations to optimize trading performance. It evaluates the historical profitability of each strategy based on the fear and greed index and market conditions.
 
 ## Contributing
 

@@ -2,7 +2,7 @@ import crypto from "node:crypto";
 import querystring from "node:querystring";
 import { SECRET_KEY } from "../configs/env-config.js";
 import { nodeCache } from "./cache.js";
-import { binanceFuturesAPI } from "./web-services.js";
+import { binanceFuturesAPI, alternativeAPI } from "./web-services.js";
 
 export const getSignature = (params) => {
   const queryString = querystring.stringify(params);
@@ -24,7 +24,7 @@ const retry = async (fn, retries = 3, delay = 1000) => {
   }
 };
 
-export const getBinanceFuturesAPI = async (path, params) => {
+const getBinanceFuturesAPI = async (path, params) => {
   const signature = getSignature(params);
   const key = path + "/" + signature;
   if (nodeCache.has(key)) {
@@ -75,12 +75,9 @@ export const klineDataAPI = async (params) => {
   return responseData;
 };
 
-export const fundingRateHistoryAPI = async (params) => {
-  const responseData = await getBinanceFuturesAPI(
-    "/fapi/v1/fundingRate",
-    params
-  );
-  return responseData;
+export const fearAndGreedHistoryAPI = async ({ limit }) => {
+  const response = await alternativeAPI.get(`/fng/?limit=${limit}`);
+  return response.data;
 };
 
 // POST

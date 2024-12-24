@@ -3,8 +3,8 @@ export const QUOTE_ASSET = "USDT";
 export const ORDER_AMOUNT_PERCENT = 100; // 100%
 export const KLINE_INTERVAL = "1h";
 export const KLINE_LIMIT = 1500;
-export const FUNDING_RATE_LONG_LEVEL = 69;
-export const FUNDING_RATE_SHORT_LEVEL = 46;
+export const FEAR_AND_GREED_LONG_LEVEL = 10;
+export const FEAR_AND_GREED_SHORT_LEVEL = 91;
 export const LEVERAGE = 1;
 
 // Backtest parameters

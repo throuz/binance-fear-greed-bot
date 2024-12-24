@@ -20,3 +20,7 @@ export const binanceFuturesAPI = axios.create({
     "X-MBX-APIKEY": API_KEY
   }
 });
+
+export const alternativeAPI = axios.create({
+  baseURL: "https://api.alternative.me"
+});

@@ -1,18 +1,18 @@
 export const getSignal = ({
   positionType,
-  curFundingRate,
-  fundingRateLongLevel,
-  fundingRateShortLevel
+  curFearAndGreed,
+  fearAndGreedLongLevel,
+  fearAndGreedShortLevel
 }) => {
   // OPEN_LONG
   if (positionType === "NONE") {
-    if (curFundingRate < fundingRateLongLevel) {
+    if (curFearAndGreed < fearAndGreedLongLevel) {
       return "OPEN_LONG";
     }
   }
   // CLOSE_LONG
   if (positionType === "LONG") {
-    if (curFundingRate > fundingRateShortLevel) {
+    if (curFearAndGreed > fearAndGreedShortLevel) {
       return "CLOSE_LONG";
     }
   }

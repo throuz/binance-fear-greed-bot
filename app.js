@@ -1,11 +1,11 @@
 import schedule from "node-schedule";
 import {
   LEVERAGE,
-  FUNDING_RATE_LONG_LEVEL,
-  FUNDING_RATE_SHORT_LEVEL
+  FEAR_AND_GREED_LONG_LEVEL,
+  FEAR_AND_GREED_SHORT_LEVEL
 } from "./configs/trade-config.js";
 import { nodeCache } from "./src/cache.js";
-import { getCachedFundingRateHistory } from "./src/cached-data.js";
+import { getCachedFearAndGreedHistory } from "./src/cached-data.js";
 import { errorHandler, sendLineNotify } from "./src/common.js";
 import { getAvailableBalance, getPositionType } from "./src/helpers.js";
 import { getSignal } from "./src/signal.js";
@@ -19,8 +19,8 @@ const logBalance = async () => {
 const setTradeConfigs = async () => {
   console.log(new Date().toLocaleString());
   nodeCache.mset([
-    { key: "fundingRateLongLevel", val: FUNDING_RATE_LONG_LEVEL, ttl: 0 },
-    { key: "fundingRateShortLevel", val: FUNDING_RATE_SHORT_LEVEL, ttl: 0 },
+    { key: "fearAndGreedLongLevel", val: FEAR_AND_GREED_LONG_LEVEL, ttl: 0 },
+    { key: "fearAndGreedShortLevel", val: FEAR_AND_GREED_SHORT_LEVEL, ttl: 0 },
     { key: "leverage", val: LEVERAGE, ttl: 0 }
   ]);
   await logBalance();
@@ -31,17 +31,17 @@ await setTradeConfigs();
 
 const getTradeSignal = async () => {
   const positionType = await getPositionType();
-  const cachedFundingRateHistory = await getCachedFundingRateHistory();
-  const curFundingRateItem =
-    cachedFundingRateHistory[cachedFundingRateHistory.length - 1];
-  const curFundingRate = curFundingRateItem.fundingRate;
-  const fundingRateLongLevel = nodeCache.get("fundingRateLongLevel");
-  const fundingRateShortLevel = nodeCache.get("fundingRateShortLevel");
+  const cachedFearAndGreedHistory = await getCachedFearAndGreedHistory();
+  const curFearAndGreedItem =
+    cachedFearAndGreedHistory[cachedFearAndGreedHistory.length - 1];
+  const curFearAndGreed = curFearAndGreedItem.value;
+  const fearAndGreedLongLevel = nodeCache.get("fearAndGreedLongLevel");
+  const fearAndGreedShortLevel = nodeCache.get("fearAndGreedShortLevel");
   return getSignal({
     positionType,
-    curFundingRate,
-    fundingRateLongLevel,
-    fundingRateShortLevel
+    curFearAndGreed,
+    fearAndGreedLongLevel,
+    fearAndGreedShortLevel
   });
 };
 

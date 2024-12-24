@@ -7,7 +7,7 @@ import {
   ORDER_AMOUNT_PERCENT,
   RANDOM_SAMPLE_NUMBER
 } from "../configs/trade-config.js";
-import { getCachedFundingRateHistory } from "./cached-data.js";
+import { getCachedFearAndGreedHistory } from "./cached-data.js";
 import { getSignal } from "./signal.js";
 import { getStepSize, formatBySize } from "./helpers.js";
 
@@ -76,10 +76,10 @@ const getFundingFee = ({
 
 export const getBacktestResult = ({
   shouldLogResults,
-  cachedFundingRateHistory,
+  cachedFearAndGreedHistory,
   stepSize,
-  fundingRateLongLevel,
-  fundingRateShortLevel,
+  fearAndGreedLongLevel,
+  fearAndGreedShortLevel,
   leverage
 }) => {
   let fund = INITIAL_FUNDING;
@@ -89,17 +89,17 @@ export const getBacktestResult = ({
   let openTimestamp = null;
   let openPrice = null;
   let liquidationPrice = null;
-  for (let i = 0; i < cachedFundingRateHistory.length; i++) {
-    const curFundingRateItem = cachedFundingRateHistory[i];
-    const curFundingRate = curFundingRateItem.fundingRate;
+  for (let i = 0; i < cachedFearAndGreedHistory.length; i++) {
+    const curFearAndGreedItem = cachedFearAndGreedHistory[i];
+    const curFearAndGreed = curFearAndGreedItem.value;
     const signal = getSignal({
       positionType,
-      curFundingRate,
-      fundingRateLongLevel,
-      fundingRateShortLevel
+      curFearAndGreed,
+      fearAndGreedLongLevel,
+      fearAndGreedShortLevel
     });
     if (signal === "OPEN_LONG") {
-      openPrice = curFundingRateItem.markPrice;
+      openPrice = curFearAndGreedItem.markPrice;
       const orderQuantity =
         (fund * (ORDER_AMOUNT_PERCENT / 100) * leverage) / openPrice;
       positionAmt = formatBySize(orderQuantity, stepSize);
@@ -107,12 +107,12 @@ export const getBacktestResult = ({
       positionFund = (positionAmt * openPrice) / leverage;
       fund = fund - positionFund - fee;
       positionType = "LONG";
-      openTimestamp = curFundingRateItem.fundingTime;
+      openTimestamp = curFearAndGreedItem.timestamp;
       liquidationPrice = openPrice * (1 - 1 / leverage);
     }
     if (signal === "CLOSE_LONG") {
-      const closePrice = curFundingRateItem.markPrice;
-      const closeTimestamp = curFundingRateItem.fundingTime;
+      const closePrice = curFearAndGreedItem.markPrice;
+      const closeTimestamp = curFearAndGreedItem.timestamp;
       const fee = positionAmt * closePrice * FEE;
       const fundingFee = getFundingFee({
         positionAmt,
@@ -144,7 +144,7 @@ export const getBacktestResult = ({
     // Liquidation (More precise logic is needed because there is an 8 hour time difference)
     if (
       positionType === "LONG" &&
-      curFundingRateItem.markPrice < liquidationPrice
+      curFearAndGreedItem.markPrice < liquidationPrice
     ) {
       return null;
     }
@@ -152,8 +152,8 @@ export const getBacktestResult = ({
   return {
     currentPositionType: positionType,
     fund,
-    fundingRateLongLevel,
-    fundingRateShortLevel,
+    fearAndGreedLongLevel,
+    fearAndGreedShortLevel,
     leverage
   };
 };
@@ -162,24 +162,22 @@ const calculateRoundedSum = ({ base, increment, precision }) => {
   return Number((base + increment).toFixed(precision));
 };
 
-const getMaxMinFundingRates = (cachedFundingRateHistory) => {
-  let maxFundingRate = -Infinity;
-  let minFundingRate = Infinity;
-  for (const item of cachedFundingRateHistory) {
-    const { fundingRate } = item;
-    if (fundingRate > maxFundingRate) maxFundingRate = fundingRate;
-    if (fundingRate < minFundingRate) minFundingRate = fundingRate;
+const getMaxMinFearAndGreeds = (cachedFearAndGreedHistory) => {
+  let maxFearAndGreed = -Infinity;
+  let minFearAndGreed = Infinity;
+  for (const item of cachedFearAndGreedHistory) {
+    const { value } = item;
+    if (value > maxFearAndGreed) maxFearAndGreed = value;
+    if (value < minFearAndGreed) minFearAndGreed = value;
   }
-  return { maxFundingRate, minFundingRate };
+  return { maxFearAndGreed, minFearAndGreed };
 };
 
-const getSettings = (cachedFundingRateHistory) => {
+const getSettings = (cachedFearAndGreedHistory) => {
   const settings = [];
-  const { maxFundingRate, minFundingRate } = getMaxMinFundingRates(
-    cachedFundingRateHistory
+  const { maxFearAndGreed, minFearAndGreed } = getMaxMinFearAndGreeds(
+    cachedFearAndGreedHistory
   );
-  console.log("minFundingRate", minFundingRate);
-  console.log("maxFundingRate", maxFundingRate);
 
   for (
     let leverage = LEVERAGE_SETTING.min;
@@ -191,27 +189,27 @@ const getSettings = (cachedFundingRateHistory) => {
     })
   ) {
     for (
-      let fundingRateLongLevel = minFundingRate;
-      fundingRateLongLevel <= maxFundingRate;
-      fundingRateLongLevel = calculateRoundedSum({
-        base: fundingRateLongLevel,
-        increment: 0.0001,
-        precision: 4
+      let fearAndGreedLongLevel = minFearAndGreed;
+      fearAndGreedLongLevel <= maxFearAndGreed;
+      fearAndGreedLongLevel = calculateRoundedSum({
+        base: fearAndGreedLongLevel,
+        increment: 1,
+        precision: 0
       })
     ) {
       for (
-        let fundingRateShortLevel = minFundingRate;
-        fundingRateShortLevel <= maxFundingRate;
-        fundingRateShortLevel = calculateRoundedSum({
-          base: fundingRateShortLevel,
-          increment: 0.0001,
-          precision: 4
+        let fearAndGreedShortLevel = minFearAndGreed;
+        fearAndGreedShortLevel <= maxFearAndGreed;
+        fearAndGreedShortLevel = calculateRoundedSum({
+          base: fearAndGreedShortLevel,
+          increment: 1,
+          precision: 0
         })
       ) {
         settings.push({
           leverage,
-          fundingRateLongLevel,
-          fundingRateShortLevel
+          fearAndGreedLongLevel,
+          fearAndGreedShortLevel
         });
       }
     }
@@ -219,8 +217,8 @@ const getSettings = (cachedFundingRateHistory) => {
   return settings;
 };
 
-const getRandomSettings = (cachedFundingRateHistory) => {
-  const settings = getSettings(cachedFundingRateHistory);
+const getRandomSettings = (cachedFearAndGreedHistory) => {
+  const settings = getSettings(cachedFearAndGreedHistory);
   if (RANDOM_SAMPLE_NUMBER) {
     const samples = [];
     for (let i = 0; i < RANDOM_SAMPLE_NUMBER; i++) {
@@ -235,27 +233,27 @@ const getRandomSettings = (cachedFundingRateHistory) => {
 export const getBestResult = async () => {
   let bestResult = { fund: 0 };
 
-  const [cachedFundingRateHistory, stepSize] = await Promise.all([
-    getCachedFundingRateHistory(),
+  const [cachedFearAndGreedHistory, stepSize] = await Promise.all([
+    getCachedFearAndGreedHistory(),
     getStepSize()
   ]);
 
-  const settings = getSettings(cachedFundingRateHistory);
+  const settings = getSettings(cachedFearAndGreedHistory);
   console.log("Total settings length", settings.length);
-  const randomSettings = getRandomSettings(cachedFundingRateHistory);
+  const randomSettings = getRandomSettings(cachedFearAndGreedHistory);
   console.log("Random samples length", randomSettings.length);
 
   const progressBar = new SingleBar({}, Presets.shades_classic);
   progressBar.start(randomSettings.length, 0);
 
   for (const setting of randomSettings) {
-    const { fundingRateLongLevel, fundingRateShortLevel, leverage } = setting;
+    const { fearAndGreedLongLevel, fearAndGreedShortLevel, leverage } = setting;
     const backtestResult = getBacktestResult({
       shouldLogResults: false,
-      cachedFundingRateHistory,
+      cachedFearAndGreedHistory,
       stepSize,
-      fundingRateLongLevel,
-      fundingRateShortLevel,
+      fearAndGreedLongLevel,
+      fearAndGreedShortLevel,
       leverage
     });
     if (backtestResult && backtestResult.fund > bestResult.fund) {

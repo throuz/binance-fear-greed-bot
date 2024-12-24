@@ -5,10 +5,10 @@ import {
   KLINE_START_TIME,
   SYMBOL
 } from "../configs/trade-config.js";
-import { klineDataAPI, fundingRateHistoryAPI } from "./api.js";
+import { klineDataAPI, fearAndGreedHistoryAPI } from "./api.js";
 
 let cachedKlineData = [];
-let cachedFundingRateHistory = [];
+let cachedFearAndGreedHistory = [];
 
 const getOriginalKlineData = async () => {
   const now = Date.now();
@@ -64,66 +64,59 @@ export const getCachedKlineData = async () => {
   return cachedKlineData;
 };
 
-const getOriginalFundingRateHistory = async () => {
-  const now = Date.now();
-  let originalFundingRateHistory = [];
-  let startTime = KLINE_START_TIME;
-  do {
-    const params = {
-      symbol: SYMBOL,
-      limit: 1000,
-      startTime
-    };
-    const fundingRateHistory = await fundingRateHistoryAPI(params);
-    originalFundingRateHistory =
-      originalFundingRateHistory.concat(fundingRateHistory);
-    if (fundingRateHistory.length > 0) {
-      startTime =
-        fundingRateHistory[fundingRateHistory.length - 1].fundingTime + 1;
-    }
-    if (!IS_KLINE_START_TIME_TO_NOW) break;
-  } while (startTime && startTime + 60 * 60 * 8 * 1000 < now);
-  return originalFundingRateHistory;
-};
-
-const getFundingRateHistory = async () => {
-  const originalFundingRateHistory = await getOriginalFundingRateHistory();
+const getFearAndGreedHistory = async () => {
+  const originalFearAndGreedHistory = await fearAndGreedHistoryAPI({
+    limit: 5000
+  });
   const cachedKlineData = await getCachedKlineData();
-  const fundingRateHistory = originalFundingRateHistory.map(
-    (fundingRateItem) => {
-      const foundPrice = cachedKlineData.find(
-        (kline) =>
-          kline.openTime <= fundingRateItem.fundingTime &&
-          kline.closeTime >= fundingRateItem.fundingTime
-      ).openPrice;
+
+  const klineLookup = cachedKlineData.reduce((acc, kline) => {
+    acc[kline.openTime] = kline.openPrice;
+    return acc;
+  }, {});
+
+  const fearAndGreedHistory = originalFearAndGreedHistory.data.map(
+    (fearAndGreedItem) => {
+      const fngTimestamp = fearAndGreedItem.timestamp * 1000;
+
+      const foundPrice =
+        klineLookup[fngTimestamp] ||
+        cachedKlineData.find(
+          (kline) =>
+            kline.openTime <= fngTimestamp && kline.closeTime >= fngTimestamp
+        )?.openPrice;
+
       return {
-        ...fundingRateItem,
-        fundingRate: Number(fundingRateItem.fundingRate),
+        value: Number(fearAndGreedItem.value),
+        timestamp: fngTimestamp,
         markPrice: foundPrice
       };
     }
   );
-  return fundingRateHistory;
+
+  return fearAndGreedHistory
+    .filter((fearAndGreedItem) => !!fearAndGreedItem.markPrice)
+    .sort((a, b) => a.timestamp - b.timestamp);
 };
 
-const shouldGetLatestFundingRateHistory = () => {
-  const noCachedData = cachedFundingRateHistory.length === 0;
+const shouldGetLatestFearAndGreedHistory = () => {
+  const noCachedData = cachedFearAndGreedHistory.length === 0;
   const isCachedDataExpired =
-    cachedFundingRateHistory.length > 0 &&
+    cachedFearAndGreedHistory.length > 0 &&
     Date.now() >
-      cachedFundingRateHistory[cachedFundingRateHistory.length - 1]
-        .fundingTime +
-        60 * 60 * 8 * 1000;
+      cachedFearAndGreedHistory[cachedFearAndGreedHistory.length - 1]
+        .timestamp +
+        60 * 60 * 24 * 1000;
   if (process.env.NODE_SCRIPT === "backtest") {
     return noCachedData;
   }
   return noCachedData || isCachedDataExpired;
 };
 
-export const getCachedFundingRateHistory = async () => {
-  if (shouldGetLatestFundingRateHistory()) {
-    const fundingRateHistory = await getFundingRateHistory();
-    cachedFundingRateHistory = fundingRateHistory;
+export const getCachedFearAndGreedHistory = async () => {
+  if (shouldGetLatestFearAndGreedHistory()) {
+    const fearAndGreedHistory = await getFearAndGreedHistory();
+    cachedFearAndGreedHistory = fearAndGreedHistory;
   }
-  return cachedFundingRateHistory;
+  return cachedFearAndGreedHistory;
 };
